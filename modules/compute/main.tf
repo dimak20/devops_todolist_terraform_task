@@ -12,45 +12,38 @@ resource "azurerm_network_interface" "nic" {
   }
 }
 
-resource "azurerm_virtual_machine" "main" {
+resource "azurerm_linux_virtual_machine" "main" {
   name                  = var.vm_name
   location              = var.location
   resource_group_name   = var.resource_group_name
   network_interface_ids = [azurerm_network_interface.nic.id]
-  vm_size               = var.vm_size
+  size                  = var.vm_size
 
-  storage_image_reference {
+  source_image_reference {
     publisher = "Canonical"
     offer     = "0001-com-ubuntu-server-jammy"
     sku       = "22_04-lts"
     version   = "latest"
   }
 
-  storage_os_disk {
-    name              = "${var.vm_name}-osdisk"
-    caching           = "ReadWrite"
-    create_option     = "FromImage"
-    managed_disk_type = "Standard_LRS"
+  os_disk {
+    name                 = "${var.vm_name}-osdisk"
+    caching              = "ReadWrite"
+    storage_account_type = "Standard_LRS"
   }
 
-  os_profile {
-    computer_name  = "matebox"
-    admin_username = "azureuser"
-  }
+  computer_name  = "matebox"
+  admin_username = "azureuser"
 
-  os_profile_linux_config {
-    disable_password_authentication = true
-
-    ssh_keys {
-      path     = "/home/azureuser/.ssh/authorized_keys"
-      key_data = var.ssh_key_public
-    }
+  admin_ssh_key {
+    username   = "azureuser"
+    public_key = var.ssh_key_public
   }
 }
 
 resource "azurerm_virtual_machine_extension" "api_install" {
   name                 = "install-api"
-  virtual_machine_id   = azurerm_virtual_machine.main.id
+  virtual_machine_id   = azurerm_linux_virtual_machine.main.id
   publisher            = "Microsoft.Azure.Extensions"
   type                 = "CustomScript"
   type_handler_version = "2.1"
